@@ -51,8 +51,11 @@ def owner_menu_list():
     print("")
     print("2. Digitally sign a message")
     print("")
+    print("3. Show the keys")
+    print("")
     print("4. Generating a new set of the keys")
     print("")
+    print("5. Exit")
     print("")
     print("Enter your choice: ", end="")
 
@@ -97,12 +100,14 @@ def owner_menu():
             else:
                 print("The following messages are available:")
                 for i, item in enumerate(messages,1):
-                    print(f"{i}. (length = {m['length']})")
+                    print(f"{i}. (length = {item['length']})")
                 print("")
                 print("Enter your choice: ", end="")
-                index = prompt_choice(1,len(messages)-1) #Just to convert my menu choice into an list index
-                message = messages.pop(index)["message"]
-                print("Decrypted message: {msg.upper()}")
+                count = len(messages)
+                index = prompt_choice(1,count) #Just to convert my menu choice into an list index
+                altIndex = index-1
+                message = messages.pop(altIndex)["message"]
+                print(f"Decrypted message: {message.upper()}")
 
         elif choice == 2:
             print("")
@@ -114,6 +119,41 @@ def owner_menu():
             signatures.append({"message": m})
             print("Message signed and sent.")
 
-        elif choice == 3: #Will have to do this one tomorrow
+        elif choice == 3:
             print("Public key (n,e):")
+            print("n = *******") #Temperary just to get the I/O looking close
+            print("e = *******") #Temp
+            print("")
+            print("Private key (n,d):")
+            print("d = *******") #Temp
 
+        elif choice == 4:
+            print("Generating new keys... This may take a moment.")
+            messages.clear()
+            signatures.clear()
+            print("RSA keys have been regenerated.")
+
+        else:
+            break
+
+#Main function to handle the menus and choices
+def main():
+    print("RSA keys have been generated.")
+    print("")
+    while True:
+        main_menu()
+        choice = prompt_choice(1,3)
+        if choice == 1:
+            public_menu()
+        elif choice == 2:
+            owner_menu()
+        else:
+            print("")
+            print("Bye for now!")
+            break
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nBye for now!")
