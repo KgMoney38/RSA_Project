@@ -1,9 +1,26 @@
 #Kody Graham,
 #Algoritms- RSA Project
 
+####################################### RSA Encryption and Decryption Functions ########################################
+import secrets
+
+n= None #ignore values while working on the decryption functions
+e= None
+d= None
+
 #Holders for my encrypted and signed messages
 messages = []
 signatures = []
+
+#Character wise decryption helper
+def decrypt_message_characterwise(cipher_list, n, d):
+    #Take the list of int ciphertext and the private key (n,d) and we will return the plaintext as a string
+    bytes = bytes([pow(c,d,n) for c in cipher_list])
+    return bytes.decode()
+
+
+
+####################################### I/O Functions ########################################
 
 #Ask for the user choice
 def prompt_choice(lowest,highest):
