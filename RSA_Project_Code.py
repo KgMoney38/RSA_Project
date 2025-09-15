@@ -20,6 +20,7 @@ def decrypt_message_characterwise(cipher_list, n, d):
 
 
 
+
 ####################################### I/O Functions ########################################
 
 #Ask for the user choice
@@ -117,14 +118,18 @@ def owner_menu():
             else:
                 print("The following messages are available:")
                 for i, item in enumerate(messages,1):
-                    print(f"{i}. (length = {item['length']})")
+                    display_length= item.get('length', len(item.get('message',''))) #Using this to make sure length shows even if it is stored as cipher only
+                    print(f"{i}. (length = {display_length})")
                 print("")
                 print("Enter your choice: ", end="")
                 count = len(messages)
-                index = prompt_choice(1,count) #Just to convert my menu choice into an list index
-                altIndex = index-1
-                message = messages.pop(altIndex)["message"]
-                print(f"Decrypted message: {message.upper()}")
+                index = prompt_choice(1,count) #Just to convert my menu choice into an indexed list
+                display_message = messages.pop(index)
+
+                plain_text = decrypt_message_characterwise(display_message['cipher'], n, d)
+
+                #Make the returned text all caps because thats how it is in the example I/O
+                print(f"Decrypted message: {plain_text.upper()}")
 
         elif choice == 2:
             print("")
