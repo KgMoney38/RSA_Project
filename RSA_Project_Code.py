@@ -1,12 +1,81 @@
 #Kody Graham,
 #Algoritms- RSA Project
 
-####################################### RSA Encryption and Decryption Functions ########################################
 import secrets
 
-n= 300 #ignore values while working on the decryption functions
-e= 300
-d= 300
+####################################### RSA Math and Logic Functions ########################################
+
+#Slightly modified from the extended euclidean algorithm we looked at in class
+def extended_gcd(a, b):
+    if b==0:
+        return (1, 0, a)
+    x, y, d = extended_gcd(b, a % b)
+    return (y, x-a//b* y, d) #Used for back substitution
+
+def modinv(a, m):
+    d,x, _ = extended_gcd(a, m)
+    if d!=1:
+        raise Exception('modular inverse does not exist')
+    return x % m
+
+#Use the fermat prime test like we learned in class
+def fermat_prime_prob(n: int, k:int =24) ->bool:
+    if n<2:
+        return False
+
+    #Quick small screen for common primes
+    smallSet= [2,3,5,7,11,13,17,19,23,29]
+    for p in smallSet:
+        if n == p:
+            return True
+        if n % p == 0:
+            return False
+
+    #Random base Fermat check
+    for _ in range(k):
+        a = secrets.randbelow(n-3)+2
+        if pow(a,n-1,n) != 1:
+            return False
+    return True
+
+#Generate the random number with the top bit set so we can enforce the bit length
+def generate_prime(bits: int=512)-> int:
+    while True:
+        candidate = (secrets.randbits(bits) | (1 << bits-1))|1)
+        if fermat_prime_prob(candidate):
+            return candidate
+
+#Build our RSA keys n, e , and d
+def generate_pair_of_keys(bits: int = 1024):
+    half= bits//2
+    p = generate_prime(half)
+    q= generate_prime(half)
+
+    while q == p: #Make sure p and q are different
+        q= generate_prime(half)
+
+    n = p*q
+    phi = (p-1)*(q-1)
+
+    e = 65537
+    if extended_gcd(e, phi)[0] != 1:
+        while True: #Fallback to pick a random odd e until gcd using e and phi is ==1
+            cand = (secrets.randbelow(17) | 1)
+            if extended_gcd(cand, phi)[0] == 1:
+                e = cand
+                break
+    d = modinv(e, phi)
+    return n, e, d
+
+
+
+
+
+####################################### RSA Encryption and Decryption Functions ########################################
+
+n= None
+d= None
+e = None
 
 #Holders for my encrypted and signed messages
 messages = []
@@ -24,6 +93,19 @@ def decrypt_message_characterwise(cipher_list, n, d):
     #Take the list of int ciphertext and the private key (n,d) and we will return the plaintext as a string
     bytes = bytes([pow(c,d,n) for c in cipher_list])
     return bytes.decode()
+
+#Signature for completeness however Dr. Hu said no hash required
+def sign_message_characterwise(message: str, signature_list, n: int, d: int):
+    data = message.encode('utf-8')
+    return[pow(b,d,n) for b in data]
+
+#Finally we need to verify the signed message
+def verify_message_characterwise(message: str, signature_list, n: int, e: int):
+    recover = bytes([pow(s,e,n) for s in signature_list])
+    try:
+        return recover.decode('utf-8') == message
+    except UnicodeDecodeError:
+        return False
 
 
 
@@ -166,6 +248,14 @@ def owner_menu():
 
 #Main function to handle the menus and choices
 def main():
+    global n
+    global e
+    global d
+
+    n= generate_pair_of_keys(bits=1024)
+    e= generate_pair_of_keys(bits=1024)
+    d = generate_pair_of_keys(bits=1024)
+
     print("RSA keys have been generated.")
     print("")
     while True:
