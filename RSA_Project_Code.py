@@ -4,13 +4,20 @@
 ####################################### RSA Encryption and Decryption Functions ########################################
 import secrets
 
-n= None #ignore values while working on the decryption functions
-e= None
-d= None
+n= 300 #ignore values while working on the decryption functions
+e= 300
+d= 300
 
 #Holders for my encrypted and signed messages
 messages = []
 signatures = []
+
+#Character wise encryption using the built in pow function we talked about in class
+def encrypt_message_characterwise(txt: str, n: int, e: int):
+    if n <= 255:
+        raise ValueError("n must be greater than or equal to 255 for our use in characterwise RSA.")
+    data= txt.encode('utf-8')
+    return [pow(b, e, n) for b in data]
 
 #Character wise decryption helper
 def decrypt_message_characterwise(cipher_list, n, d):
@@ -87,9 +94,8 @@ def public_menu():
             print("")
             print("Enter a message: ", end="")
             message = input().strip()
-            if message == "": #Temporary if for debugging
-                message = "TEMP/TEST"
-            messages.append({"length": len(message), "message": message})
+            our_cipher_list = encrypt_message_characterwise(message, n, e)
+            messages.append({"length": len(message), "cipher": our_cipher_list})
             print("Message encrypted and sent.")
 
         elif choice == 2:
@@ -123,7 +129,7 @@ def owner_menu():
                 print("")
                 print("Enter your choice: ", end="")
                 count = len(messages)
-                index = prompt_choice(1,count) #Just to convert my menu choice into an indexed list
+                index = prompt_choice(1,count-1) #Just to convert my menu choice into an indexed list
                 display_message = messages.pop(index)
 
                 plain_text = decrypt_message_characterwise(display_message['cipher'], n, d)
