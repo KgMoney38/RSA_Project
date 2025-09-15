@@ -1,18 +1,27 @@
 #Kody Graham,
 #Algoritms- RSA Project
 
-import secrets
+import secrets #We need this import to give us random numbers for our prime number and our keys
+
+n: int
+d: int
+e: int
+
+#Holders for my encrypted and signed messages
+messages = []
+signatures = []
 
 ####################################### RSA Math and Logic Functions ########################################
 
 #Slightly modified from the extended euclidean algorithm we looked at in class
-def extended_gcd(a, b):
+def extended_gcd(a:int, b:int):
+    #Will return d, x, and y where a*x + b*y = g which is gcd(a,b)
     if b==0:
-        return (1, 0, a)
-    x, y, d = extended_gcd(b, a % b)
-    return (y, x-a//b* y, d) #Used for back substitution
+        return (a, 1, 0)
+    d, x, y = extended_gcd(b, a % b)
+    return d, y, x- (a//b) * y
 
-def modinv(a, m):
+def modinverse(a, m):
     d,x, _ = extended_gcd(a, m)
     if d!=1:
         raise Exception('modular inverse does not exist')
@@ -39,9 +48,9 @@ def fermat_prime_prob(n: int, k:int =24) ->bool:
     return True
 
 #Generate the random number with the top bit set so we can enforce the bit length
-def generate_prime(bits: int=512)-> int:
+def generate_prime(bits:int = 512)-> int:
     while True:
-        candidate = (secrets.randbits(bits) | (1 << bits-1))|1)
+        candidate = (secrets.randbits(bits) | (1 << (bits-1))|1)
         if fermat_prime_prob(candidate):
             return candidate
 
@@ -60,11 +69,11 @@ def generate_pair_of_keys(bits: int = 1024):
     e = 65537
     if extended_gcd(e, phi)[0] != 1:
         while True: #Fallback to pick a random odd e until gcd using e and phi is ==1
-            cand = (secrets.randbelow(17) | 1)
-            if extended_gcd(cand, phi)[0] == 1:
-                e = cand
+            candidate = (secrets.randbits(17) | 1)
+            if candidate >1 and extended_gcd(candidate, phi)[0] == 1:
+                e = candidate
                 break
-    d = modinv(e, phi)
+    d = modinverse(e, phi)
     return n, e, d
 
 
@@ -72,14 +81,6 @@ def generate_pair_of_keys(bits: int = 1024):
 
 
 ####################################### RSA Encryption and Decryption Functions ########################################
-
-n= None
-d= None
-e = None
-
-#Holders for my encrypted and signed messages
-messages = []
-signatures = []
 
 #Character wise encryption using the built in pow function we talked about in class
 def encrypt_message_characterwise(txt: str, n: int, e: int):
@@ -91,11 +92,11 @@ def encrypt_message_characterwise(txt: str, n: int, e: int):
 #Character wise decryption helper
 def decrypt_message_characterwise(cipher_list, n, d):
     #Take the list of int ciphertext and the private key (n,d) and we will return the plaintext as a string
-    bytes = bytes([pow(c,d,n) for c in cipher_list])
-    return bytes.decode()
+    num_bytes = bytes([pow(c,d,n) for c in cipher_list]) #Note to self: bytes is a keyword in python so remember i cant use it as a var name
+    return num_bytes.decode('utf-8', errors='replace')
 
 #Signature for completeness however Dr. Hu said no hash required
-def sign_message_characterwise(message: str, signature_list, n: int, d: int):
+def sign_message_characterwise(message: str, n: int, d: int):
     data = message.encode('utf-8')
     return[pow(b,d,n) for b in data]
 
@@ -189,14 +190,18 @@ def public_menu():
                     print(f"{i}. {item['message']}")
                 print("")
                 print("Enter your choice: ", end="")
-                _= prompt_choice(1,len(signatures)) #Throw away variable that's why it is just a symbol
-                print("Signature is valid.")
+                pick= prompt_choice(1,len(signatures))-1 #Need the -1 for 0->N instead of 1->N
+                sig = signatures[pick]
+                ok = verify_message_characterwise(sig["message"], sig["signature"], n, e)
+                print("Signature is valid." if ok else "Signature is invalid.")
 
         else:
             break
 
 #Owner menu logic next
 def owner_menu():
+    global n, e, d
+
     while True:
         owner_menu_list()
         choice = prompt_choice(1,5)
@@ -210,8 +215,7 @@ def owner_menu():
                     print(f"{i}. (length = {display_length})")
                 print("")
                 print("Enter your choice: ", end="")
-                count = len(messages)
-                index = prompt_choice(1,count-1) #Just to convert my menu choice into an indexed list
+                index = prompt_choice(1,len(messages)) -1
                 display_message = messages.pop(index)
 
                 plain_text = decrypt_message_characterwise(display_message['cipher'], n, d)
@@ -224,21 +228,21 @@ def owner_menu():
             print("")
             print("Enter a message: ", end="")
             m= input().strip()
-            if m == "":
-                m = "TEMP/TEST"
-            signatures.append({"message": m})
+            signature_list = sign_message_characterwise(m, n, d)
+            signatures.append({"message": m, "signature": signature_list})
             print("Message signed and sent.")
 
         elif choice == 3:
             print("Public key (n,e):")
-            print("n = *******") #Temperary just to get the I/O looking close
-            print("e = *******") #Temp
+            print(f"n = {n}")
+            print(f"e = {e}")
             print("")
             print("Private key (n,d):")
-            print("d = *******") #Temp
+            print(f"d = {d}")
 
         elif choice == 4:
             print("Generating new keys... This may take a moment.")
+            n,e,d = generate_pair_of_keys(bits=1024)
             messages.clear()
             signatures.clear()
             print("RSA keys have been regenerated.")
@@ -248,13 +252,10 @@ def owner_menu():
 
 #Main function to handle the menus and choices
 def main():
-    global n
-    global e
-    global d
 
-    n= generate_pair_of_keys(bits=1024)
-    e= generate_pair_of_keys(bits=1024)
-    d = generate_pair_of_keys(bits=1024)
+    global n,e,d
+
+    n,e,d = generate_pair_of_keys(bits=1024)
 
     print("RSA keys have been generated.")
     print("")
